@@ -11,13 +11,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.edutrain.busbooking.payment.model.PaymentModel;
 import com.edutrain.busbooking.payment.model.PaymentModelWrapper;
 import com.edutrain.busbooking.payment.repository.PaymentRepository;
 
 
-
+@RestController
+@RequestMapping("/payment")
 public class PaymentController {
 	
 	@Autowired
@@ -52,7 +55,7 @@ public class PaymentController {
 
 	}
 
-	@PostMapping("/addPayment")
+	@PostMapping("/addpayment")
 	public String addPayment(@RequestBody PaymentModel paymentModel) {
 
 		String paymentNumber = paymentModel.getPaymentNo();
