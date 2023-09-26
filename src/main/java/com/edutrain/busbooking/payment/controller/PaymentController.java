@@ -1,10 +1,13 @@
 package com.edutrain.busbooking.payment.controller;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,15 +17,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.edutrain.busbooking.payment.model.BookPayment;
 import com.edutrain.busbooking.payment.model.PaymentModel;
 import com.edutrain.busbooking.payment.model.PaymentModelWrapper;
 import com.edutrain.busbooking.payment.repository.PaymentRepository;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 @RestController
 @RequestMapping("/payment")
 public class PaymentController {
-	
+
 	@Autowired
 	PaymentModel paymentModel;
 
@@ -30,7 +36,13 @@ public class PaymentController {
 	PaymentModelWrapper paymentModelWrapper;
 
 	@Autowired
+	BookPayment bookPayment;
+
+	@Autowired
 	private final PaymentRepository paymentRepository;
+
+	@Autowired
+	private JmsMessagingTemplate jmsMessagingTemplate;
 
 	public PaymentController(PaymentRepository paymentRepository) {
 		this.paymentRepository = paymentRepository;
@@ -47,11 +59,55 @@ public class PaymentController {
 		});
 
 		PaymentModelList.forEach((paymentModel) -> {
-			stringRouteList.add("PaymentNo: " + paymentModel.getPaymentNo() + ",BookingNo: " + paymentModel.getDateOfPayment()
-			+ ",DateOfPayment: " + paymentModel.getDateOfPayment());
+			stringRouteList.add("PaymentNo: " + paymentModel.getPaymentNo() + ",BookingNo: "
+					+ paymentModel.getDateOfPayment() + ",DateOfPayment: " + paymentModel.getDateOfPayment());
 		});
 
 		return stringRouteList;
+
+	}
+
+	@JmsListener(destination = "BookingToPayment")
+	public String ReceiveBookingAndProcessPayment(Object obj) {
+
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		System.out.println("Message Received" + obj);
+		bookPayment = (BookPayment) obj;
+
+		// Add business logic
+		paymentModel.setPaymentAmount(String
+				.valueOf(Integer.parseInt(bookPayment.getNoOfSeats()) * Integer.parseInt(bookPayment.getPrice())));
+		paymentModel.setBookingNo(bookPayment.getBookingNo());
+		paymentModel.setDateOfPayment(new Date("2023-09-23"));
+		paymentModel.setSeatsBooked(bookPayment.getNoOfSeats());
+		addPayment(paymentModel);
+		
+		// Send message to inventory Service
+		SendMessageToInventoryService(bookPayment);
+
+		return null;
+
+	}
+
+	public String SendMessageToInventoryService(BookPayment bookPayment) {
+		jmsMessagingTemplate.convertAndSend("PaymentToInventory", bookPayment);
+
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		String jsonString;
+		try {
+			
+			jsonString = ow.writeValueAsString(paymentModel);
+			return jsonString;
+		} catch (JsonProcessingException e) {
+
+			e.printStackTrace();
+			return "Exception occured";
+		}
 
 	}
 
@@ -89,8 +145,8 @@ public class PaymentController {
 
 			paymentModelWrapper = paymentModelWrapperRetValue.get();
 			paymentModel = paymentModelWrapper.getPaymentModel();
-			String PaymentModelStr = "PaymentNo: " + paymentModel.getPaymentNo() + ",BookingNo: " + paymentModel.getBookingNo()
-			+ ",DateOfPayment: " + paymentModel.getDateOfPayment();
+			String PaymentModelStr = "PaymentNo: " + paymentModel.getPaymentNo() + ",BookingNo: "
+					+ paymentModel.getBookingNo() + ",DateOfPayment: " + paymentModel.getDateOfPayment();
 
 			return PaymentModelStr;
 
@@ -142,6 +198,5 @@ public class PaymentController {
 		}
 
 	}
-
 
 }

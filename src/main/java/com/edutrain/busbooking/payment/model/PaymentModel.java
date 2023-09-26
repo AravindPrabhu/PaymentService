@@ -12,8 +12,9 @@ public class PaymentModel {
 	private String paymentNo;
 	private String bookingNo;
 	private Date dateOfPayment;
-	
-	
+	private String seatsBooked;
+	private String paymentAmount;
+		
 	public String getPaymentNo() {
 		return paymentNo;
 	}
@@ -32,6 +33,19 @@ public class PaymentModel {
 	public void setDateOfPayment(Date dateOfPayment) {
 		this.dateOfPayment = dateOfPayment;
 	}
+	public String getSeatsBooked() {
+		return seatsBooked;
+	}
+	public void setSeatsBooked(String seatsBooked) {
+		this.seatsBooked = seatsBooked;
+	}
+	public String getPaymentAmount() {
+		return paymentAmount;
+	}
+	public void setPaymentAmount(String paymentAmount) {
+		this.paymentAmount = paymentAmount;
+	}
+	
 	
 
 }
