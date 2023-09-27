@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsMessagingTemplate;
+import org.springframework.messaging.Message;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,7 +69,7 @@ public class PaymentController {
 	}
 
 	@JmsListener(destination = "BookingToPayment")
-	public String ReceiveBookingAndProcessPayment(Object obj) {
+	public String ReceiveBookingAndProcessPayment(final Message<BookPayment> message) {
 
 		try {
 			Thread.sleep(5000);
@@ -76,9 +77,12 @@ public class PaymentController {
 			e.printStackTrace();
 		}
 
-		System.out.println("Message Received" + obj);
-		bookPayment = (BookPayment) obj;
+		System.out.println("Message Received" + message);
+		//bookPayment = (BookPayment)jmsMessagingTemplate.receiveAndConvert("BookingToPayment", BookPayment.class);
+		bookPayment = message.getPayload();
 
+		 System.out.println( "value of BookPayment "+ bookPayment.getBookingNo() +" " + bookPayment.getBusNo()
+		 +bookPayment.getPassengerId() +" "+ bookPayment.getPassengerName());
 		// Add business logic
 		paymentModel.setPaymentAmount(String
 				.valueOf(Integer.parseInt(bookPayment.getNoOfSeats()) * Integer.parseInt(bookPayment.getPrice())));
@@ -100,7 +104,7 @@ public class PaymentController {
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		String jsonString;
 		try {
-			
+
 			jsonString = ow.writeValueAsString(paymentModel);
 			return jsonString;
 		} catch (JsonProcessingException e) {
